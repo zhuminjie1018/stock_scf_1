@@ -37,7 +37,8 @@
   - `__main__`：argparse CLI，写回 `kline_chart.html`。
 - **`index.py`**（腾讯云函数 SCF 入口）：
   - `main_handler(event, context)`：从 `event['queryString']` 取 `ts_code/start_date/end_date`（缺省用全局默认值），调 `generate_html()`。
-  - 返回集成响应 `{isBase64Encoded, statusCode, headers, body}`：200 + `text/html`（完整 kline_chart.html 内容）、400（参数错误）、500（内部异常）。
+  - 返回集成响应 `{isBase64Encoded, statusCode, headers, body}`：200 + `text/html`（完整 kline_chart.html 内容）、400 + `text/html`（参数非法/中文名时的辅助提示页，含代码格式与默认代码，`_help_page()`）、500（内部异常）。
+  - 提示页须 >512 字节：浏览器对 4xx 且响应体 <512 字节的响应会丢弃内容、改显示自带错误页，故提示页要足够长才能被看到。
   - 执行方法 `index.main_handler`，触发方式为**函数 URL**（GET、公网）。**勿用 API 网关触发器**（2025-06-30 已下线）。
 - 历史说明：原 `policies/` 交易策略子包（MACD 买卖对、波段回测、日线/周线联合信号）、周线 resample（`generate_weekly_from_daily`）及 step5 `check_spec_day` 已于 2026-10 全部移除。
 
