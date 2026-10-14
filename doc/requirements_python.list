@@ -1,0 +1,5 @@
+# 本地开发环境依赖（.venv，Python 3.14）
+# 云函数 SCF 部署请用仓库根目录 requirements.txt（pandas 版本随运行时降为 2.2.3），勿混用。
+pyecharts==2.1.0
+tushare==1.4.29
+pandas==3.0.2

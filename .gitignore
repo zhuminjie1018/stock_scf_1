@@ -1,0 +1,18 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+
+# Virtual environments
+.venv*/
+venv/
+env/
+
+# IDE
+.idea/
+.vscode/
+
+# Project generated output
+/kline_chart.html
+/render.html

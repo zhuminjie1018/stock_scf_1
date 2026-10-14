@@ -1,0 +1,11 @@
+# 腾讯云函数 SCF 依赖清单（在 Web IDE 终端执行：pip install -r requirements.txt -t .）
+#
+# 注意：
+# 1. pandas 版本须匹配 SCF Python 运行时。SCF 当前最高提供 Python 3.10（以控制台实际可选为准），
+#    pandas 3.x 要求 Python >= 3.11，故云端固定用 2.2.3（本项目仅用 rolling/ewm/groupby 等基础 API，2.x 完全兼容）。
+#    若控制台提供 Python >= 3.11，可改回 pandas==3.0.2（与本地 doc/requirements_python.list 一致）。
+# 2. 不要在 Windows 本地 pip install -t . 打包（win_amd64 二进制在 SCF/CentOS 7 上 ImportError），
+#    必须在 Web IDE 或 Linux/Docker 环境安装。
+pyecharts==2.1.0
+tushare==1.4.29
+pandas==2.2.3
