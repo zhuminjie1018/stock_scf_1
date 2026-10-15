@@ -174,7 +174,7 @@ def calc_zhibiao(p_df):
 
 # 3 描画K线及各种计算指标图，返回HTML字符串
 # 说明：SCF 代码目录只读、仅 /tmp 可写，故渲染到唯一临时文件后读回字符串并删除临时文件
-def draw_charts(df):
+def draw_charts(df, ts_code):
     
     # 3-1. 准备K线数据
     xaxis_data = df['trade_date'].dt.strftime('%Y-%m-%d').tolist()
@@ -185,9 +185,9 @@ def draw_charts(df):
         Kline()
         .add_xaxis(xaxis_data)
         .add_yaxis(
-            "KLINE CandleStick",                #series_name="XXXX"
+            "CandleStick",                       #series_name="XXXX"
             kline_data,
-            itemstyle_opts=opts.ItemStyleOpts(    #ItemStyleOpts 图形样式。建议：不需额外进行设置，缺省的式样更好看。
+            itemstyle_opts=opts.ItemStyleOpts(   #ItemStyleOpts 图形样式。建议：不需额外进行设置，缺省的式样更好看。
                 #color="#ec0000",                #柱体色，上升
                 #color0="#00da3c",               #柱体色，下降
                 #border_color="#8A0000",         #柱体边框+引线，上升
@@ -211,8 +211,9 @@ def draw_charts(df):
                     pos_top=30, 
                     pos_left="center",            
             ),
+
             
-            title_opts=opts.TitleOpts(title="Kline-基本示例(XX)"),   #Kline的Tiitle，缺省左上角
+            title_opts=opts.TitleOpts(title=f"Kline({ts_code})"),   #Kline的Tiitle，缺省左上角
             xaxis_opts=opts.AxisOpts(is_scale=True),
             yaxis_opts=opts.AxisOpts(
                 is_scale=True,                      #Y轴缩放，最大化显示Y轴有效数字区域
@@ -612,7 +613,7 @@ def generate_html(ts_code, start_date, end_date):
         print(df.tail(5))
         print()
 
-    return draw_charts(df)
+    return draw_charts(df, ts_code)
 
 if __name__ == "__main__":
 
