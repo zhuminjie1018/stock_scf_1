@@ -17,13 +17,26 @@ from stock_kline import (
 )
 
 
-def _resp(status_code, content_type, body):
+VIEWPORT = '<meta name="viewport" content="width=device-width, initial-scale=1">'
+
+
+def _resp(status_code, content_type, body, filename=None):
+    headers = {
+        "Content-Type": content_type,
+        "Access-Control-Allow-Origin": "*",
+    }
+    if filename:
+        headers["Content-Disposition"] = f'inline; filename="{filename}"'
     return {
         "isBase64Encoded": False,
         "statusCode": status_code,
-        "headers": {"Content-Type": content_type},
+        "headers": headers,
         "body": body,
     }
+
+
+def _inject_viewport(html):
+    return html.replace("<head>", "<head>\n" + VIEWPORT, 1)
 
 
 def _help_page(message, ts_code):
@@ -77,9 +90,12 @@ def main_handler(event, context):
     end_date = qs.get("end_date") or var_end_date
 
     try:
-        html = generate_html(ts_code, start_date, end_date)
-        return _resp(200, "text/html; charset=utf-8", html)
+        html = generate_html(ts_code, start_date, end_date, mobile=True)
+        html = _inject_viewport(html)
+        return _resp(200, "text/html; charset=utf-8", html,
+                     filename=f"kline_{ts_code}.html")
     except ValueError as e:
-        return _resp(400, "text/html; charset=utf-8", _help_page(str(e), ts_code))
+        return _resp(400, "text/html; charset=utf-8", _help_page(str(e), ts_code),
+                     filename="kline_help.html")
     except Exception as e:
         return _resp(500, "text/plain; charset=utf-8", f"服务内部错误: {e}")

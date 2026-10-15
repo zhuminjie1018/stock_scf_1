@@ -9,7 +9,7 @@
 |---|---|---|
 | 函数类型 | **事件函数**（非 Web 函数） | 无需写 Web Server/监听 9000/scf_bootstrap，改动最小 |
 | 触发方式 | **函数 URL**（GET、公网） | API 网关触发器 2025-06-30 已下线，不可新建；函数 URL 是官方指定替代且"兼容 apigw 响应集成，无需改造" |
-| 响应格式 | 集成响应结构 | 返回 `Content-Type: text/html` 的完整页面，浏览器直接渲染 |
+| 响应格式 | 集成响应结构 | 返回 `Content-Type: text/html` 的完整页面。**实测：函数 URL 会强制 `Content-Disposition: attachment`（浏览器下载而非渲染），见 `doc/mobile-adaptation-plan.md` §7** |
 | 参数化 | 支持 URL query 参数 | `?ts_code=000001.SZ&start_date=...&end_date=...`，缺省用现有默认值 |
 | 依赖打包 | **方式 A：控制台 Web IDE 在线安装** | 无需本地 Linux/Docker，环境天然匹配 SCF（CentOS 7） |
 | 本地 CLI | **保留** | 重构共用函数，`python stock_kline.py` 仍生成 `kline_chart.html`，现有使用习惯与 AGENTS.md 验证流程不变 |

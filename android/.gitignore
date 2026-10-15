@@ -1,0 +1,13 @@
+# Android / Gradle
+*.iml
+.gradle/
+/build/
+/captures/
+.externalNativeBuild/
+.cxx/
+local.properties
+/app/build/
+
+# 构建产物
+*.apk
+*.aab

@@ -39,6 +39,10 @@ var_ts_code    = '600519.SH'
 var_start_date = '20250101'
 var_end_date   = '20260918'
 
+# 移动端图表容器尺寸（竖屏纵向滚动 + 加高；可调）
+MOBILE_CHART_WIDTH  = "100%"
+MOBILE_CHART_HEIGHT = "900px"
+
 # 获取TuShare数据
 def get_data_from_ts(ts_code, start_date, end_date):
     
@@ -174,7 +178,7 @@ def calc_zhibiao(p_df):
 
 # 3 描画K线及各种计算指标图，返回HTML字符串
 # 说明：SCF 代码目录只读、仅 /tmp 可写，故渲染到唯一临时文件后读回字符串并删除临时文件
-def draw_charts(df, ts_code):
+def draw_charts(df, ts_code, mobile=False):
     
     # 3-1. 准备K线数据
     xaxis_data = df['trade_date'].dt.strftime('%Y-%m-%d').tolist()
@@ -542,11 +546,20 @@ def draw_charts(df, ts_code):
     )
 
     # 4. 用Grid，分屏显示Kline和Bar等各区域
+    if mobile:
+        init_opts = opts.InitOpts(
+            animation_opts=opts.AnimationOpts(animation=False),
+            width=MOBILE_CHART_WIDTH,
+            height=MOBILE_CHART_HEIGHT,
+        )
+    else:
+        init_opts = opts.InitOpts(
+            animation_opts=opts.AnimationOpts(animation=False),
+        )
+
     grid = (
         Grid(
-            init_opts=opts.InitOpts(
-                animation_opts=opts.AnimationOpts(animation=False),
-            )        
+            init_opts=init_opts,
         )
         
         #K线图区域（预留10%给x轴日期区域）
@@ -599,7 +612,7 @@ def validate(ts_code, start_date, end_date):
         raise ValueError(f'start-date({start_date}) 不能晚于 end-date({end_date})')
 
 # 核心流水线：取数 -> 计算指标 -> 生成图表HTML（CLI 与云函数共用）
-def generate_html(ts_code, start_date, end_date):
+def generate_html(ts_code, start_date, end_date, mobile=False):
     validate(ts_code, start_date, end_date)
     df = get_data_from_ts(ts_code, start_date, end_date)
     if ENABLE_DBUG_MainFlow:
@@ -613,7 +626,7 @@ def generate_html(ts_code, start_date, end_date):
         print(df.tail(5))
         print()
 
-    return draw_charts(df, ts_code)
+    return draw_charts(df, ts_code, mobile=mobile)
 
 if __name__ == "__main__":
 
