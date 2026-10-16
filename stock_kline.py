@@ -39,9 +39,9 @@ var_ts_code    = '600519.SH'
 var_start_date = '20250101'
 var_end_date   = '20260918'
 
-# 移动端图表容器尺寸（竖屏纵向滚动 + 加高；可调）
+# 移动端图表容器尺寸（宽度自适应 + 高度=WebView 可视高度，恰好一屏；可调）
 MOBILE_CHART_WIDTH  = "100%"
-MOBILE_CHART_HEIGHT = "900px"
+MOBILE_CHART_HEIGHT = "100vh"
 
 # 获取TuShare数据
 def get_data_from_ts(ts_code, start_date, end_date):

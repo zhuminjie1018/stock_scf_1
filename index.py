@@ -18,6 +18,7 @@ from stock_kline import (
 
 
 VIEWPORT = '<meta name="viewport" content="width=device-width, initial-scale=1">'
+RESET_CSS = '<style>html,body{margin:0;padding:0;height:100%;}</style>'
 
 
 def _resp(status_code, content_type, body, filename=None):
@@ -36,7 +37,7 @@ def _resp(status_code, content_type, body, filename=None):
 
 
 def _inject_viewport(html):
-    return html.replace("<head>", "<head>\n" + VIEWPORT, 1)
+    return html.replace("<head>", "<head>\n" + VIEWPORT + RESET_CSS, 1)
 
 
 def _help_page(message, ts_code):

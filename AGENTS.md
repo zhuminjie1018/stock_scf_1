@@ -41,7 +41,7 @@
   - 返回集成响应 `{isBase64Encoded, statusCode, headers, body}`：200 + `text/html`（完整 kline_chart.html 内容）、400 + `text/html`（参数非法/中文名时的辅助提示页，含代码格式与默认代码，`_help_page()`）、500（内部异常）。
   - 提示页须 >512 字节：浏览器对 4xx 且响应体 <512 字节的响应会丢弃内容、改显示自带错误页，故提示页要足够长才能被看到。
   - 执行方法 `index.main_handler`，触发方式为**函数 URL**（GET、公网）。**勿用 API 网关触发器**（2025-06-30 已下线）。
-  - 移动适配：`main_handler` 调 `generate_html(..., mobile=True)`，注入 viewport meta，响应加 `Content-Disposition: inline` 与 CORS；`generate_html/draw_charts` 的 `mobile` 开关令图表 `width:100%/height:900px`（桌面 CLI 不传，行为不变）。
+  - 移动适配：`main_handler` 调 `generate_html(..., mobile=True)`，注入 viewport meta + `html,body{margin:0;height:100%}` 复位样式，响应加 `Content-Disposition: inline` 与 CORS；`generate_html/draw_charts` 的 `mobile` 开关令图表 `width:100%/height:100vh`（=WebView 可视高度，恰好一屏；桌面 CLI 不传，行为不变）。
 - 历史说明：原 `policies/` 交易策略子包（MACD 买卖对、波段回测、日线/周线联合信号）、周线 resample（`generate_weekly_from_daily`）及 step5 `check_spec_day` 已于 2026-10 全部移除。
 
 ## 云函数部署（腾讯云 SCF）
@@ -52,8 +52,10 @@
 - **安装依赖的 Python 版本必须与运行时一致**：运行时选 3.11 时，`lxml`/`pandas` 等二进制扩展会在云端 `ImportError: cannot import name 'etree' from 'lxml'`（Web IDE 装出的 `.so` 与运行时不匹配）；实测运行时用 **Python 3.10** 正常。
 - 访问示例：`https://<url>/?ts_code=000001.SZ&start_date=20250101&end_date=20260918`
 - 自定义下载名（浏览器会下载而非渲染，见「关键事实」）：把文件名放 URL 末段，如 `https://<url>/kline_000001.SZ.html?ts_code=000001.SZ&start_date=...&end_date=...`
-- 目前的函数URL（20261015）： https://1480388537-j4cnl3240r.ap-guangzhou.tencentscf.com
-
+- 目前的函数URL（20261015）：
+   https://1480388537-j4cnl3240r.ap-guangzhou.tencentscf.com
+   https://1480388537-j4cnl3240r.ap-guangzhou.tencentscf.com/?ts_code=000001.SZ&start_date=20260501&end_date=20261016
+   
 ## Android 客户端（`android/`）
 
 - 独立的 Android Studio 工程（Kotlin），与 SCF 的 Python 代码**物理隔离**。需求见仓库根目录 `SRS_app.md`。

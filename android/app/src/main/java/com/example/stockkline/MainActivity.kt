@@ -17,6 +17,7 @@ import okhttp3.Request
 import okhttp3.Response
 import java.io.IOException
 import java.text.SimpleDateFormat
+import java.util.Date
 import java.util.Locale
 import java.util.concurrent.TimeUnit
 
@@ -26,6 +27,8 @@ class MainActivity : AppCompatActivity() {
     private lateinit var etStart: EditText
     private lateinit var etEnd: EditText
     private lateinit var btnConfirm: Button
+    private lateinit var btnToggleInput: Button
+    private lateinit var inputContainer: View
     private lateinit var progress: ProgressBar
     private lateinit var webView: WebView
 
@@ -46,20 +49,38 @@ class MainActivity : AppCompatActivity() {
         etStart = findViewById(R.id.etStart)
         etEnd = findViewById(R.id.etEnd)
         btnConfirm = findViewById(R.id.btnConfirm)
+        btnToggleInput = findViewById(R.id.btnToggleInput)
+        inputContainer = findViewById(R.id.inputContainer)
         progress = findViewById(R.id.progress)
         webView = findViewById(R.id.webView)
 
-        // 默认值（与 SCF 侧 var_ts_code / var_start_date / var_end_date 一致）
+        // 默认值：股票代码/开始日期用固定缺省；结束日期取"今天"
         etCode.setText(getString(R.string.default_code))
         etStart.setText(getString(R.string.default_start))
-        etEnd.setText(getString(R.string.default_end))
+        etEnd.setText(SimpleDateFormat("yyyyMMdd", Locale.US).format(Date()))
 
         webView.settings.javaScriptEnabled = true
         webView.settings.domStorageEnabled = true
         webView.settings.useWideViewPort = true
         webView.settings.loadWithOverviewMode = true
-        webView.webViewClient = WebViewClient()
+        webView.webViewClient = object : WebViewClient() {
+            override fun onPageFinished(view: WebView?, url: String?) {
+                // 页面加载完成后让 echarts 按当前 WebView 可视高度重排
+                dispatchResize()
+            }
+        }
 
+        // WebView 尺寸变化（收起/展开输入区、旋转）后，通知页面内 echarts 重算布局
+        webView.addOnLayoutChangeListener { _, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom ->
+            val sizeChanged = (right - left) != (oldRight - oldLeft) ||
+                (bottom - top) != (oldBottom - oldTop)
+            if (sizeChanged) dispatchResize()
+        }
+
+        // 默认展开
+        setInputsVisible(true)
+
+        btnToggleInput.setOnClickListener { setInputsVisible(inputContainer.visibility != View.VISIBLE) }
         btnConfirm.setOnClickListener { onConfirm() }
     }
 
@@ -80,6 +101,8 @@ class MainActivity : AppCompatActivity() {
             toast(getString(R.string.msg_date_order))
             return
         }
+        // 查询前收起输入区，让图表占满整屏
+        setInputsVisible(false)
         loadChart(code, start, end)
     }
 
@@ -128,6 +151,16 @@ class MainActivity : AppCompatActivity() {
                 }
             }
         })
+    }
+
+    private fun setInputsVisible(visible: Boolean) {
+        inputContainer.visibility = if (visible) View.VISIBLE else View.GONE
+        btnToggleInput.setText(if (visible) R.string.btn_collapse else R.string.btn_expand)
+    }
+
+    private fun dispatchResize() {
+        // echarts 默认监听 window 的 resize 事件，会据此重算各分区尺寸
+        webView.evaluateJavascript("window.dispatchEvent(new Event('resize'));", null)
     }
 
     private fun showLoading(loading: Boolean) {

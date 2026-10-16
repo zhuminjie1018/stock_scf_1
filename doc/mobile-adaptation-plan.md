@@ -7,7 +7,7 @@
 > 1. Android 端采用**方案 B**：OkHttp 拉取 SCF 返回的 HTML → `WebView.loadDataWithBaseURL` 渲染。
 > 2. SCF 的移动适配**本次一起做**（`inline` + viewport + 宽度 100% + CORS）。
 > 3. **不预留** `format=json` 接口。
-> 4. 手机竖屏采用**页面内纵向滚动 + 图表加高**。
+> 4. 手机竖屏图表**恰好一屏**（SCF 容器 `height:100vh` + 去 body 边距），Android 输入区**可折叠**（点确认后自动收起），无需滚动。
 
 ---
 
@@ -30,7 +30,7 @@
                                                                ▼
 ┌──────────────── SCF 函数 URL (Python 3.10) ─────────────────┐
 │  main_handler → generate_html(mobile=True)                  │
-│    → get_data_from_ts → calc_zhibiao → draw_charts(宽100%,高加高) │
+│    → get_data_from_ts → calc_zhibiao → draw_charts(宽100%,高100vh) │
 │  返回: text/html + Content-Disposition:inline + CORS + viewport │
 └─────────────────────────────────────────────────────────────┘
 ```
@@ -70,9 +70,10 @@ def _resp(status_code, content_type, body, filename=None):
 
 ```python
 VIEWPORT = '<meta name="viewport" content="width=device-width, initial-scale=1">'
+RESET_CSS = '<style>html,body{margin:0;padding:0;height:100%;}</style>'
 
 def _inject_viewport(html):
-    return html.replace("<head>", "<head>\n" + VIEWPORT, 1)
+    return html.replace("<head>", "<head>\n" + VIEWPORT + RESET_CSS, 1)
 
 def main_handler(event, context):
     qs = (event or {}).get("queryString") or {}
@@ -94,14 +95,14 @@ def main_handler(event, context):
 
 > `_help_page`（index.py:29-70）本身已带 viewport，无需再注入；它已足够长（>512B，满足 SCF 4xx 响应体要求）。
 
-### 3.3 `stock_kline.py`：`mobile` 开关 + 宽度自适应 + 加高
+### 3.3 `stock_kline.py`：`mobile` 开关 + 宽度自适应 + 视口高度
 
 新增 `mobile` 参数，向下贯穿 `generate_html → draw_charts`，**保留桌面 CLI 的原样**：
 
 ```python
-# 移动端图表容器尺寸（竖屏纵向滚动 + 加高；可调）
+# 移动端图表容器尺寸（宽度自适应 + 高度=WebView 可视高度，恰好一屏；可调）
 MOBILE_CHART_WIDTH  = "100%"
-MOBILE_CHART_HEIGHT = "900px"   # 相对桌面默认 500px 约 1.8 倍，K线区≈405px
+MOBILE_CHART_HEIGHT = "100vh"   # 100vh = WebView 可视高度（不含 App 上方输入区）
 
 def draw_charts(df, ts_code, mobile=False):
     ...
@@ -109,7 +110,7 @@ def draw_charts(df, ts_code, mobile=False):
         init_opts = opts.InitOpts(
             animation_opts=opts.AnimationOpts(animation=False),
             width=MOBILE_CHART_WIDTH,      # 关键：铺满屏宽，避免 900px 横向溢出
-            height=MOBILE_CHART_HEIGHT,    # 关键：加高，竖屏内滚动查看
+            height=MOBILE_CHART_HEIGHT,    # 关键：=WebView 可视高度，恰好一屏
         )
     else:
         init_opts = opts.InitOpts(
@@ -125,7 +126,7 @@ def generate_html(ts_code, start_date, end_date, mobile=False):
 ```
 
 要点：
-- Grid 内各分区用百分比定位（`pos_top`/`height` 为 `45%`/`10%` 等，stock_kline.py:556-574），容器加高后**各分区等比例变高**，4 区更易读。
+- Grid 内各分区用百分比定位（`pos_top`/`height` 为 `45%`/`10%` 等，stock_kline.py:556-574），容器取 `100vh` 后**各分区按可视高度等比例分布**，一屏内完整显示。
 - `width="100%"` 配合 viewport，图表宽度随屏宽自适应。
 - CLI（`__main__`）不传 `mobile`，行为与现在完全一致。
 
@@ -167,7 +168,7 @@ LinearLayout(vertical)
 - `settings.domStorageEnabled = true`
 - `webViewClient = WebViewClient()`（拦截为站内加载，避免跳出系统浏览器）
 - 可选：`settings.useWideViewPort = true` / `loadWithOverviewMode = true`
-- 竖屏纵向滚动由页面自然高度驱动（容器 900px > 屏高即可滚动），无需额外处理。
+- 一屏显示：容器 `100vh` = WebView 可视高度，配合 `index.py` 注入的 `html,body{margin:0}` 去边距，页面恰好一屏、无滚动。Android 输入区**可折叠**，收起后图表自动占满并重排（派发 `window` 的 `resize` 事件）。
 
 ### 4.5 关键代码骨架（Kotlin）
 
@@ -223,12 +224,12 @@ class MainActivity : AppCompatActivity() {
 
 **SCF（本地先行）**
 1. `python -m py_compile stock_kline.py index.py`
-2. 本地模拟：`generate_html('000001.SZ','20250101','20260918', mobile=True)` 渲染出的 HTML 中，容器应为 `width:100%; height:900px;`。
+2. 本地模拟：`generate_html('000001.SZ','20250101','20260918', mobile=True)` 渲染出的 HTML 中，容器应为 `width:100%; height:100vh;`。
 3. 部署后用 `curl -i "https://<函数URL>/?ts_code=000001.SZ"` 检查响应头：含 `Content-Type: text/html; charset=utf-8`、`Access-Control-Allow-Origin: *`；但 `Content-Disposition` 被平台覆盖为 `attachment`（无 filename），并额外注入 `Content-Type: application/json`；body 含 viewport meta。
 4. 浏览器访问 URL 会**下载**（见 §7）；打开下载得到的 HTML 文件即可看到渲染效果。
 
 **Android**
-5. 真机/模拟器输入 `000001.SZ` → 触发请求 → WebView 显示 K 线；竖屏可纵向滚动，4 区可读。
+5. 真机/模拟器输入 `000001.SZ` → 触发请求 → 参数区自动收起、WebView 显示 K 线，一屏内 4 区完整可读、无滚动。
 6. 输入非法代码（如 `abc`）→ 原生提示、不发请求。
 7. 断网点查询 → 原生错误提示。
 8. 确认 echarts（`assets.pyecharts.org`）在目标网络下可加载。
@@ -253,7 +254,7 @@ X-Scf-Request-Id: ...
 Transfer-Encoding: chunked
 ```
 
-（下载到的 HTML 内已含 viewport 与 `width:100%; height:900px`，证明移动改造已生效。）
+（下载到的 HTML 内已含 viewport 与 `width:100%; height:100vh`，证明移动改造已生效。）
 
 ### 7.2 自测方法
 
@@ -294,7 +295,7 @@ SCF 侧无需改代码。
 |---|---|---|
 | echarts CDN 不可达 | 手机网络访问不到 `assets.pyecharts.org` → 白屏 | 自托管 JS（本次不做，登记备选） |
 | 函数 URL 强制下载 | 平台覆盖 `Content-Disposition` 为 `attachment`，浏览器直接访问会下载 HTML（非渲染） | 属平台行为，不影响 App；浏览器自测＝打开下载文件（见 §7） |
-| 加高后字号偏小 | `width:100%` 在窄屏下坐标轴/提示框拥挤 | 调整 `MOBILE_CHART_HEIGHT`、`pos_left/right` 边距 |
+| 一屏内字号偏小 | `width:100%`/`100vh` 在窄屏下坐标轴/提示框拥挤 | 调整 `MOBILE_CHART_HEIGHT`、`pos_left/right` 边距 |
 | 函数 URL 变动 | URL 变更需同步 App 配置 | App 中集中为常量/配置项，勿散落 |
 | WebView 返回键 | 页面无路由，返回键默认退出 | 视需要 `webView.canGoBack()` 处理（当前单页，可忽略） |
 

@@ -7,10 +7,11 @@
     <string name="hint_code">如 000001.SZ</string>
     <string name="hint_date">格式 YYYYMMDD，例 20250101</string>
     <string name="btn_confirm">确认</string>
+    <string name="btn_collapse">收起参数</string>
+    <string name="btn_expand">展开参数</string>
 
     <string name="default_code">600519.SH</string>
-    <string name="default_start">20250101</string>
-    <string name="default_end">20260918</string>
+    <string name="default_start">20260101</string>
 
     <string name="msg_invalid_code">股票代码格式不正确，应为 XXXXXX.SH/SZ/BJ（如 000001.SZ）</string>
     <string name="msg_invalid_date">日期格式不正确，应为 YYYYMMDD（如 20250101）</string>
